@@ -41,12 +41,12 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot, serverTimestamp, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const FIREBASE_CONFIG = {
-  apiKey: 'PEGA_AQUI_TU_API_KEY',
-  authDomain: 'PEGA_AQUI_TU_AUTH_DOMAIN',
-  projectId: 'PEGA_AQUI_TU_PROJECT_ID',
-  storageBucket: 'PEGA_AQUI_TU_STORAGE_BUCKET',
-  messagingSenderId: 'PEGA_AQUI_TU_MESSAGING_SENDER_ID',
-  appId: 'PEGA_AQUI_TU_APP_ID'
+apiKey: "AIzaSyB7F5JDco_fwtyIq-i2dKXRKmA5vrpVHps",
+authDomain: "porra-mundial-9d5c7.firebaseapp.com",
+projectId: "porra-mundial-9d5c7",
+storageBucket: "porra-mundial-9d5c7.firebasestorage.app",
+messagingSenderId: "116523544531",
+appId: "1:116523544531:web:67e14e8bbba8591df70926"
 };
 const CONFIG_OK = FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.startsWith('PEGA_AQUI');
 let db = null;
