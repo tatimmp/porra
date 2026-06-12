@@ -1,0 +1,343 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Porra Mundial 2026 · Cruces Dinámicos</title>
+  <style>
+    :root{--bg:#0d0d0d;--panel:#1a1a1a;--line:#333;--text:#f0f0f0;--green:#00c65e;--gold:#ffd700;--red:#ff4444;--blue:#4aa3ff}
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,sans-serif}
+    .header{position:sticky;top:0;background:linear-gradient(135deg,#0a2a0a,#0D0D0D);border-bottom:2px solid var(--green);padding:14px 18px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;z-index:50}
+    .logo{font-size:20px;font-weight:900;color:var(--green);letter-spacing:1px}.sub{font-size:11px;color:#777}
+    .chips,.actions{display:flex;gap:8px;flex-wrap:wrap}.chips{flex:1}.main{max-width:1180px;margin:0 auto;padding:18px}
+    .chip,.btn,.tab,.pick,.smallBtn{background:#2a2a2a;color:var(--text);border:1px solid #444;border-radius:999px;padding:7px 12px;cursor:pointer}
+    .chip.active,.tab.active,.pick.on{border-color:var(--green);color:var(--green);background:rgba(0,198,94,.12)}
+    .btn{border-radius:8px}.btn.green{background:var(--green);color:#000;border-color:var(--green)} .btn.red{border-color:var(--red);color:var(--red);background:transparent}
+    .btn.blue{border-color:var(--blue);color:var(--blue);background:transparent}.btn.ghost{border-color:var(--green);color:var(--green);background:transparent}
+    .tabs{display:flex;gap:8px;overflow:auto;padding:12px 18px;background:#151515;border-bottom:1px solid var(--line)}
+    .tab{border-radius:8px;white-space:nowrap}.tab[disabled]{opacity:.5;cursor:not-allowed}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:14px}
+    .cardH{background:#242424;padding:10px 14px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+    .info{padding:10px 14px;border:1px solid #1f4;border-radius:10px;background:rgba(0,198,94,.08);margin-bottom:14px;color:var(--green)}
+    .info.blue{border-color:#4aa3ff44;background:rgba(74,163,255,.08);color:var(--blue)} .info.red{border-color:#ff444444;background:rgba(255,68,68,.08);color:#ff8d8d}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}.grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}.grid3{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
+    .pick{display:flex;justify-content:space-between;align-items:center;border-radius:10px;padding:10px 12px;margin-bottom:6px;background:transparent;width:100%;text-align:left}
+    .muted{color:#888;font-size:12px}.center{text-align:center}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.stack{display:flex;flex-direction:column;gap:6px}
+    .input,.select{background:#2a2a2a;color:var(--text);border:1px solid #444;border-radius:8px;padding:8px 12px}
+    .select{width:100%}
+    table{width:100%;border-collapse:collapse} th,td{padding:10px 12px;border-bottom:1px solid #222;text-align:left} th{font-size:10px;color:#777;text-transform:uppercase}
+    .modalBg{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:16px;z-index:100}.modal{width:min(460px,100%);background:#1a1a1a;border:1px solid #444;border-radius:16px;padding:22px}
+    .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;padding:10px 18px;border-radius:999px;font-weight:700;z-index:9999}.toast.green{background:var(--green);color:#000}.toast.red{background:var(--red);color:#fff}.toast.blue{background:var(--blue);color:#08111d}
+    .pill{display:inline-block;padding:3px 8px;border-radius:999px;font-size:11px;background:#222;border:1px solid #444;color:#ccc}
+    .ok{color:var(--green)}
+    @media (max-width:700px){.grid,.grid2,.grid3{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot, serverTimestamp, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+const FIREBASE_CONFIG = {
+  apiKey: 'PEGA_AQUI_TU_API_KEY',
+  authDomain: 'PEGA_AQUI_TU_AUTH_DOMAIN',
+  projectId: 'PEGA_AQUI_TU_PROJECT_ID',
+  storageBucket: 'PEGA_AQUI_TU_STORAGE_BUCKET',
+  messagingSenderId: 'PEGA_AQUI_TU_MESSAGING_SENDER_ID',
+  appId: 'PEGA_AQUI_TU_APP_ID'
+};
+const CONFIG_OK = FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.startsWith('PEGA_AQUI');
+let db = null;
+if (CONFIG_OK) db = getFirestore(initializeApp(FIREBASE_CONFIG));
+
+const GROUPS = [
+  { letra:'A', equipos:[['México','🇲🇽'],['Sudáfrica','🇿🇦'],['Corea del Sur','🇰🇷'],['República Checa','🇨🇿']] },
+  { letra:'B', equipos:[['Canadá','🇨🇦'],['Bosnia y Herzegovina','🇧🇦'],['Catar','🇶🇦'],['Suiza','🇨🇭']] },
+  { letra:'C', equipos:[['Brasil','🇧🇷'],['Marruecos','🇲🇦'],['Haití','🇭🇹'],['Escocia','🏴']] },
+  { letra:'D', equipos:[['Estados Unidos','🇺🇸'],['Paraguay','🇵🇾'],['Australia','🇦🇺'],['Turquía','🇹🇷']] },
+  { letra:'E', equipos:[['Alemania','🇩🇪'],['Curazao','🇨🇼'],['Costa de Marfil','🇨🇮'],['Ecuador','🇪🇨']] },
+  { letra:'F', equipos:[['Países Bajos','🇳🇱'],['Japón','🇯🇵'],['Suecia','🇸🇪'],['Túnez','🇹🇳']] },
+  { letra:'G', equipos:[['Bélgica','🇧🇪'],['Egipto','🇪🇬'],['Irán','🇮🇷'],['Nueva Zelanda','🇳🇿']] },
+  { letra:'H', equipos:[['España','🇪🇸'],['Cabo Verde','🇨🇻'],['Arabia Saudí','🇸🇦'],['Uruguay','🇺🇾']] },
+  { letra:'I', equipos:[['Francia','🇫🇷'],['Senegal','🇸🇳'],['Irak','🇮🇶'],['Noruega','🇳🇴']] },
+  { letra:'J', equipos:[['Argentina','🇦🇷'],['Argelia','🇩🇿'],['Austria','🇦🇹'],['Jordania','🇯🇴']] },
+  { letra:'K', equipos:[['Portugal','🇵🇹'],['RD Congo','🇨🇩'],['Uzbekistán','🇺🇿'],['Colombia','🇨🇴']] },
+  { letra:'L', equipos:[['Inglaterra','🏴'],['Croacia','🇭🇷'],['Ghana','🇬🇭'],['Panamá','🇵🇦']] }
+];
+const GROUP_LETTERS = GROUPS.map(g => g.letra);
+const TEAM_MAP = Object.fromEntries(GROUPS.flatMap(g => g.equipos.map(([n,f]) => [n,f])));
+const TEAMS_BY_GROUP = Object.fromEntries(GROUPS.map(g => [g.letra, g.equipos.map(([n]) => n)]));
+
+const ROUND32 = [
+  { match:73, home:'2A', away:'2B' },
+  { match:74, home:'1E', away:'SLOT74' },
+  { match:75, home:'1F', away:'2C' },
+  { match:76, home:'1C', away:'2F' },
+  { match:77, home:'1I', away:'SLOT77' },
+  { match:78, home:'2E', away:'2I' },
+  { match:79, home:'1A', away:'SLOT79' },
+  { match:80, home:'1L', away:'SLOT80' },
+  { match:81, home:'1D', away:'SLOT81' },
+  { match:82, home:'1G', away:'SLOT82' },
+  { match:83, home:'2K', away:'2L' },
+  { match:84, home:'1H', away:'2J' },
+  { match:85, home:'1B', away:'SLOT85' },
+  { match:86, home:'1J', away:'2H' },
+  { match:87, home:'1K', away:'SLOT87' },
+  { match:88, home:'2D', away:'2G' }
+];
+const ROUND16 = [
+  { match:89, home:'W74', away:'W77' },
+  { match:90, home:'W73', away:'W75' },
+  { match:91, home:'W76', away:'W78' },
+  { match:92, home:'W79', away:'W80' },
+  { match:93, home:'W83', away:'W84' },
+  { match:94, home:'W81', away:'W82' },
+  { match:95, home:'W86', away:'W88' },
+  { match:96, home:'W85', away:'W87' }
+];
+const QUARTERS = [
+  { match:97, home:'W89', away:'W90' },
+  { match:98, home:'W91', away:'W92' },
+  { match:99, home:'W93', away:'W94' },
+  { match:100, home:'W95', away:'W96' }
+];
+const SEMIS = [
+  { match:101, home:'W97', away:'W98' },
+  { match:102, home:'W99', away:'W100' }
+];
+const FINAL = [
+  { match:103, home:'W101', away:'W102' }
+];
+
+const PHASES = [
+  {id:'grupos',label:'⚽ Grupos',badge:24},
+  {id:'dieciseisavos',label:'⚔️ 16avos',badge:16},
+  {id:'octavos',label:'🔥 Octavos',badge:8},
+  {id:'cuartos',label:'💥 Cuartos',badge:4},
+  {id:'semis',label:'🚀 Semis',badge:2},
+  {id:'final',label:'🏆 Final',badge:1},
+  {id:'tabla',label:'📊 Tabla',badge:null}
+];
+const ORDER = ['grupos','dieciseisavos','octavos','cuartos','semis','final'];
+const INDEX = Object.fromEntries(ORDER.map((x,i)=>[x,i]));
+const PTS = { dieciseisavos:2, octavos:3, cuartos:4, semis:5, final:6 };
+const DEFAULT_SETTINGS = { blocked:false, unlockedPhase:'grupos', adminPinHash:null };
+const EMPTY_RESULTS = {
+  groups: Object.fromEntries(GROUP_LETTERS.map(l => [l, { first:'', second:'', third:'', thirdQualified:false }])),
+  thirdAssignments: { SLOT74:'', SLOT77:'', SLOT79:'', SLOT80:'', SLOT81:'', SLOT82:'', SLOT85:'', SLOT87:'' },
+  dieciseisavos:{}, octavos:{}, cuartos:{}, semis:{}, final:{}
+};
+const APP_ID = 'worldcup2026';
+
+const state = {
+  players:[],
+  bets:{},
+  results: structuredClone(EMPTY_RESULTS),
+  settings:{...DEFAULT_SETTINGS},
+  yo:sessionStorage.getItem('porra:yo') || null,
+  auth:JSON.parse(sessionStorage.getItem('porra:auth') || '{}'),
+  fase:'grupos', admin:false, editing:false,
+  newName:'', newPin:'', rename:null, renameVal:'', renamePin:'',
+  showAdmin:false, adminPin:'', adminErr:'', authModal:null,
+  toast:null, loading:CONFIG_OK
+};
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const slug = s => encodeURIComponent(s.trim().toLowerCase());
+const avatar = n => ['⚽','🏃','🥅','🎯','🔥','💪','⭐','🦁','🐯','🦅'][[...n].reduce((a,c)=>a+c.charCodeAt(0),0)%10];
+const root = ()=>doc(db,'porras',APP_ID);
+const settingsRef = ()=>doc(db,'porras',APP_ID,'meta','settings');
+const resultsRef = ()=>doc(db,'porras',APP_ID,'meta','results');
+const playerRef = i=>doc(db,'porras',APP_ID,'players',i);
+const betRef = i=>doc(db,'porras',APP_ID,'bets',i);
+
+let toastT = null;
+function flash(msg,color='green'){ state.toast={msg,color}; clearTimeout(toastT); toastT=setTimeout(()=>{state.toast=null;render();},2400); render(); }
+async function sha256(text){ const buf=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)); return [...new Uint8Array(buf)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
+function persist(){ sessionStorage.setItem('porra:yo', state.yo || ''); sessionStorage.setItem('porra:auth', JSON.stringify(state.auth)); }
+function phaseOpen(id){ return id==='tabla' || INDEX[id] <= INDEX[state.settings.unlockedPhase]; }
+function myGroup(letter){ return state.bets[state.yo]?.grupos?.[letter] || []; }
+function myPick(phase,key){ return state.bets[state.yo]?.[phase]?.[key] ?? null; }
+
+function groupPos(letter,pos){ return state.results.groups?.[letter]?.[pos] || ''; }
+function qualifiedThirdGroups(){ return GROUP_LETTERS.filter(l => state.results.groups?.[l]?.thirdQualified && state.results.groups?.[l]?.third); }
+function qualifiedThirdTeams(){ return qualifiedThirdGroups().map(l => ({ code:`3${l}`, group:l, team:state.results.groups[l].third })); }
+
+function slotDisplay(slotCode){
+  const assigned = state.results.thirdAssignments?.[slotCode] || '';
+  if(!assigned) return slotCode;
+  const team = state.results.groups?.[assigned]?.third || '';
+  return team ? `${TEAM_MAP[team] || ''} ${team} (3${assigned})` : `3${assigned}`;
+}
+
+function resolveRef(ref){
+  if(!ref) return '';
+  if(/^SLOT\d+$/.test(ref)){
+    const assigned = state.results.thirdAssignments?.[ref] || '';
+    return assigned ? (state.results.groups?.[assigned]?.third || `3${assigned}`) : ref;
+  }
+  if(/^W\d+$/.test(ref)){
+    const num = ref.slice(1);
+    return state.results.dieciseisavos[num] || state.results.octavos[num] || state.results.cuartos[num] || state.results.semis[num] || '';
+  }
+  if(/^[1234][A-L]$/.test(ref)){
+    const posMap = {'1':'first','2':'second','3':'third'};
+    if(ref[0] === '4') return '';
+    return state.results.groups?.[ref[1]]?.[posMap[ref[0]]] || ref;
+  }
+  return ref;
+}
+
+function matchupLabelHomeAway(homeRef, awayRef){
+  const h = resolveRef(homeRef) || homeRef;
+  const a = resolveRef(awayRef) || awayRef;
+  return [h,a];
+}
+
+function progress(id){
+  if(!state.yo) return '0/' + (PHASES.find(x=>x.id===id)?.badge ?? 0);
+  if(id==='grupos'){
+    let n=0; GROUP_LETTERS.forEach(l => n += (state.bets[state.yo]?.grupos?.[l] || []).length); return `${n}/24`;
+  }
+  const max = PHASES.find(x=>x.id===id)?.badge; return `${Object.keys(state.bets[state.yo]?.[id] || {}).length}/${max}`;
+}
+
+function points(name){
+  const ap = state.bets[name] || {};
+  let g=0;
+  GROUP_LETTERS.forEach(letter => {
+    const apostados = ap.grupos?.[letter] || [];
+    const reales = [groupPos(letter,'first'), groupPos(letter,'second')].filter(Boolean);
+    apostados.forEach(t => { if(reales.includes(t)) g += 1; });
+  });
+  let k=0;
+  ['dieciseisavos','octavos','cuartos','semis','final'].forEach(phase => {
+    const a = ap[phase] || {};
+    const r = state.results[phase] || {};
+    Object.keys(a).forEach(key => { if(r[key] && a[key] === r[key]) k += PTS[phase]; });
+  });
+  return {grupos:g, knockout:k, total:g+k};
+}
+
+async function ensureBase(){
+  const r = await getDoc(root()); if(!r.exists()) await setDoc(root(), {createdAt:serverTimestamp(), name:'Porra Mundial 2026'});
+  const s = await getDoc(settingsRef()); if(!s.exists()) await setDoc(settingsRef(), DEFAULT_SETTINGS);
+  const res = await getDoc(resultsRef()); if(!res.exists()) await setDoc(resultsRef(), EMPTY_RESULTS);
+}
+
+async function init(){
+  if(!CONFIG_OK){ render(); return; }
+  await ensureBase();
+
+  onSnapshot(collection(db,'porras',APP_ID,'players'), snap => {
+    const a=[]; snap.forEach(d => a.push(d.data())); a.sort((x,y)=>(x.name||'').localeCompare(y.name||''));
+    state.players = a.map(x=>x.name); if(state.yo && !state.players.includes(state.yo)) state.yo = null; state.loading=false; persist(); render();
+  });
+  onSnapshot(collection(db,'porras',APP_ID,'bets'), snap => {
+    const b={}; snap.forEach(d => { const x=d.data(); b[x.playerName] = { grupos:x.grupos||{}, dieciseisavos:x.dieciseisavos||{}, octavos:x.octavos||{}, cuartos:x.cuartos||{}, semis:x.semis||{}, final:x.final||{} }; });
+    state.bets=b; render();
+  });
+  onSnapshot(settingsRef(), snap => {
+    state.settings = snap.exists() ? { ...DEFAULT_SETTINGS, ...snap.data() } : { ...DEFAULT_SETTINGS };
+    if(!phaseOpen(state.fase)) state.fase = state.settings.unlockedPhase;
+    render();
+  });
+  onSnapshot(resultsRef(), snap => {
+    state.results = snap.exists() ? { ...structuredClone(EMPTY_RESULTS), ...snap.data(), groups:{...structuredClone(EMPTY_RESULTS.groups), ...(snap.data().groups||{})}, thirdAssignments:{...EMPTY_RESULTS.thirdAssignments, ...(snap.data().thirdAssignments||{})} } : structuredClone(EMPTY_RESULTS);
+    render();
+  });
+}
+
+async function addPlayer(){ const n=state.newName.trim(), pin=state.newPin.trim(); if(!n||!pin) return flash('⚠️ Necesitas nombre y PIN','red'); const id=slug(n); if((await getDoc(playerRef(id))).exists()) return flash('⚠️ Ese nombre ya existe','red'); const h=await sha256(pin); await setDoc(playerRef(id), {name:n,pinHash:h,createdAt:serverTimestamp(),updatedAt:serverTimestamp()}); await setDoc(betRef(id), {playerName:n,grupos:{},dieciseisavos:{},octavos:{},cuartos:{},semis:{},final:{},updatedAt:serverTimestamp()}); state.auth[id]=true; state.yo=n; state.newName=''; state.newPin=''; persist(); flash('👤 Jugador creado'); }
+async function deletePlayer(name){ if(!confirm(`¿Eliminar a ${name} y todas sus apuestas?`)) return; const id=slug(name); const batch=writeBatch(db); batch.delete(playerRef(id)); batch.delete(betRef(id)); await batch.commit(); delete state.auth[id]; if(state.yo===name) state.yo=null; persist(); flash('🗑️ Jugador eliminado','red'); }
+async function renamePlayer(){ const old=state.rename, nw=state.renameVal.trim(), pin=state.renamePin.trim(); if(!old||!nw||!pin) return flash('⚠️ Faltan datos','red'); const oid=slug(old), nid=slug(nw); const p=await getDoc(playerRef(oid)); if(!p.exists()) return flash('⚠️ No existe','red'); const dat=p.data(); const h=await sha256(pin); if(h!==dat.pinHash && !state.admin) return flash('⚠️ PIN incorrecto','red'); if(oid!==nid && (await getDoc(playerRef(nid))).exists()) return flash('⚠️ El nuevo nombre ya existe','red'); const b=await getDoc(betRef(oid)); const batch=writeBatch(db); batch.set(playerRef(nid), {...dat,name:nw,updatedAt:serverTimestamp()}); if(b.exists()){ batch.set(betRef(nid), {...b.data(),playerName:nw,updatedAt:serverTimestamp()}); if(oid!==nid) batch.delete(betRef(oid)); } if(oid!==nid) batch.delete(playerRef(oid)); await batch.commit(); delete state.auth[oid]; state.auth[nid]=true; if(state.yo===old) state.yo=nw; persist(); state.rename=null; state.renameVal=''; state.renamePin=''; flash('✏️ Renombrado'); }
+function pickPlayer(name){ state.yo=name; persist(); flash(`👤 Viendo como ${name}`,'blue'); }
+async function ensureEdit(action){ if(!state.yo) return flash('⚠️ Elige tu nombre','red'); if(!state.auth[slug(state.yo)]){ state.authModal={player:state.yo,pin:'',err:'',action}; render(); return; } await action(); }
+async function submitAuth(){ const m=state.authModal; const p=await getDoc(playerRef(slug(m.player))); if(!p.exists()) return flash('⚠️ Jugador no encontrado','red'); const ok=(await sha256(m.pin.trim()))===p.data().pinHash; if(!ok){ state.authModal.err='PIN incorrecto'; return render(); } state.auth[slug(m.player)] = true; persist(); const fn=m.action; state.authModal=null; render(); if(fn) await fn(); flash(`🔓 Edición activada para ${m.player}`); }
+async function saveCurrent(mut){ const id=slug(state.yo); const s=await getDoc(betRef(id)); if(!s.exists()) return flash('⚠️ Apuesta no encontrada','red'); const d=s.data(); const payload={playerName:d.playerName||state.yo,grupos:d.grupos||{},dieciseisavos:d.dieciseisavos||{},octavos:d.octavos||{},cuartos:d.cuartos||{},semis:d.semis||{},final:d.final||{}}; try{ mut(payload); }catch(e){ flash(e.message||'Error','red'); throw e; } payload.updatedAt=serverTimestamp(); await setDoc(betRef(id), payload, {merge:true}); }
+async function toggleGroup(letter, team){ if(!phaseOpen('grupos') || state.settings.blocked) return flash('🔒 Fase de grupos cerrada','red'); await ensureEdit(async()=>{ await saveCurrent(p=>{ const arr=[...(p.grupos[letter]||[])]; const i=arr.indexOf(team); if(i>=0) arr.splice(i,1); else if(arr.length<2) arr.push(team); else throw new Error('Ya elegiste 2'); p.grupos[letter]=arr; }); render(); }); }
+async function chooseWinner(phase, key, team){ if(!phaseOpen(phase) || state.settings.blocked) return flash('🔒 Fase cerrada','red'); await ensureEdit(async()=>{ await saveCurrent(p=>{ if(!p[phase]) p[phase]={}; p[phase][key]=team; }); flash('✅ Guardado'); }); }
+async function openAdmin(){ if(!CONFIG_OK) return flash('⚠️ Primero configura Firebase','red'); if(state.admin){ state.admin=false; return flash('🔒 Saliste del modo admin'); } state.showAdmin=true; state.adminErr=''; state.adminPin=''; render(); }
+async function submitAdmin(){ const pin=state.adminPin.trim(); if(!pin){ state.adminErr='Introduce PIN'; return render(); } const h=await sha256(pin); if(!state.settings.adminPinHash){ if(pin.length<4){ state.adminErr='Mínimo 4 caracteres'; return render(); } await setDoc(settingsRef(), {adminPinHash:h},{merge:true}); state.admin=true; state.showAdmin=false; return flash('🔑 PIN admin creado'); } if(h===state.settings.adminPinHash){ state.admin=true; state.showAdmin=false; flash('🔑 Modo admin activado'); } else { state.adminErr='PIN incorrecto'; render(); } }
+async function setPhase(v){ await setDoc(settingsRef(), {unlockedPhase:v},{merge:true}); state.fase=v; flash(`🧩 Porra abierta hasta: ${v}`); }
+async function toggleBlocked(){ await setDoc(settingsRef(), {blocked:!state.settings.blocked},{merge:true}); flash(state.settings.blocked?'🔓 Apuestas desbloqueadas':'🔒 Apuestas bloqueadas', state.settings.blocked?'green':'red'); }
+async function saveResults(mutator){ const snap=await getDoc(resultsRef()); const base = snap.exists() ? snap.data() : structuredClone(EMPTY_RESULTS); const merged={ ...structuredClone(EMPTY_RESULTS), ...base, groups:{...structuredClone(EMPTY_RESULTS.groups), ...(base.groups||{})}, thirdAssignments:{...EMPTY_RESULTS.thirdAssignments, ...(base.thirdAssignments||{})} }; mutator(merged); await setDoc(resultsRef(), merged, {merge:true}); }
+async function setGroupPosition(letter,pos,team){ if(!state.admin) return flash('Solo admin','red'); await saveResults(cur=>{ const group={...(cur.groups[letter]||EMPTY_RESULTS.groups[letter])}; group[pos]=team; if(pos==='first' && group.second===team) group.second=''; if(pos==='second' && group.first===team) group.first=''; if(pos==='third' && (group.first===team || group.second===team)) throw new Error('El 3º no puede repetir 1º/2º'); cur.groups[letter]=group; }).then(()=>flash('✅ Posición guardada')).catch(err=>flash(err.message||'Error','red')); }
+async function toggleThirdQualified(letter){ if(!state.admin) return flash('Solo admin','red'); await saveResults(cur=>{ const group={...(cur.groups[letter]||EMPTY_RESULTS.groups[letter])}; group.thirdQualified=!group.thirdQualified; cur.groups[letter]=group; }).then(()=>flash('✅ Tercero actualizado')).catch(err=>flash(err.message||'Error','red')); }
+async function assignThirdSlot(slotCode, groupLetter){ if(!state.admin) return flash('Solo admin','red'); await saveResults(cur=>{ cur.thirdAssignments[slotCode]=groupLetter || ''; }).then(()=>flash('✅ Asignación guardada')).catch(err=>flash(err.message||'Error','red')); }
+async function setMatchResult(phase, matchNo, team){ if(!state.admin) return flash('Solo admin','red'); await saveResults(cur=>{ if(!cur[phase]) cur[phase]={}; cur[phase][String(matchNo)] = team; }).then(()=>flash('✅ Resultado guardado')).catch(err=>flash(err.message||'Error','red')); }
+
+function renderModal(){ if(state.showAdmin){ return `<div class="modalBg"><div class="modal"><h3 style="margin-top:0">${state.settings.adminPinHash?'🔑 Acceso admin':'🔑 Crear PIN admin'}</h3><div class="muted" style="margin-bottom:12px">${state.settings.adminPinHash?'Introduce el PIN admin':'Primera vez: crea un PIN admin'}</div><input class="input" style="width:100%" type="password" placeholder="PIN admin" value="${esc(state.adminPin)}" oninput="state.adminPin=this.value;state.adminErr='';render()" onkeydown="if(event.key==='Enter')submitAdmin()" autofocus>${state.adminErr?`<div style="color:#ff8d8d;margin:8px 0">${esc(state.adminErr)}</div>`:''}<div class="row" style="margin-top:12px"><button class="btn green" onclick="submitAdmin()">Aceptar</button><button class="btn ghost" onclick="state.showAdmin=false;render()">Cancelar</button></div></div></div>`; }
+if(state.authModal){ const m=state.authModal; return `<div class="modalBg"><div class="modal"><h3 style="margin-top:0">🔐 Desbloquear edición</h3><div class="muted" style="margin-bottom:12px">Introduce el PIN de <strong>${esc(m.player)}</strong> para editar sus apuestas. Los demás pueden verlas sin PIN.</div><input class="input" style="width:100%" type="password" placeholder="PIN del jugador" value="${esc(m.pin)}" oninput="state.authModal.pin=this.value;state.authModal.err='';render()" onkeydown="if(event.key==='Enter')submitAuth()" autofocus>${m.err?`<div style="color:#ff8d8d;margin:8px 0">${esc(m.err)}</div>`:''}<div class="row" style="margin-top:12px"><button class="btn green" onclick="submitAuth()">Desbloquear</button><button class="btn ghost" onclick="state.authModal=null;render()">Cancelar</button></div></div></div>`; } return ''; }
+
+function header(){ return `<div class="header"><div><div class="logo">Porra <span style="color:var(--gold)">Mundial</span> 2026</div><div class="sub">🇺🇸 USA · 🇨🇦 CAN · 🇲🇽 MEX · Cruces dinámicos</div></div><div class="chips">${state.players.map(p=>`<button class="chip ${state.yo===p?'active':''}" onclick="pickPlayer('${esc(p)}')">${avatar(p)} ${esc(p)}</button>`).join('')}</div><div class="actions">${state.yo?`<button class="btn ${state.auth[slug(state.yo)]?'blue':'ghost'}" onclick="ensureEdit(async()=>{})">${state.auth[slug(state.yo)]?'🔓 Puedes editar':'🔐 Editar mis apuestas'}</button>`:''}${state.admin?`<button class="btn ${state.settings.blocked?'red':'blue'}" onclick="toggleBlocked()">${state.settings.blocked?'🔒 Bloqueado':'🔓 Abierto'}</button>`:''}${state.admin?`<select class="select" onchange="setPhase(this.value)">${ORDER.map(x=>`<option value="${x}" ${state.settings.unlockedPhase===x?'selected':''}>${x}</option>`).join('')}</select>`:''}${state.admin?`<button class="btn ghost" onclick="state.editing=!state.editing;render()">${state.editing?'✕ Cerrar':'✏️ Jugadores'}</button>`:''}<button class="btn ${state.admin?'red':'ghost'}" onclick="openAdmin()">${state.admin?'Salir admin':'⚙️ Admin'}</button></div></div>`; }
+function tabs(){ return `<div class="tabs">${PHASES.map(f=>`<button class="tab ${state.fase===f.id?'active':''}" ${f.id!=='tabla' && !phaseOpen(f.id)?'disabled':''} onclick="selectPhase('${f.id}')">${f.label}${f.badge!=null && state.yo ? ` <span class="muted">${progress(f.id)}</span>` : ''}</button>`).join('')}</div>`; }
+
+function adminPlayersPanel(){ if(!(state.admin && state.editing)) return ''; return `<div class="main"><div class="card"><div class="cardH">👥 Gestionar jugadores</div><div style="padding:14px"><div class="row" style="margin-bottom:12px">${state.players.map(p=>`<div style="background:#242424;padding:8px 12px;border-radius:10px" class="row">${state.rename===p?`<input class="input" value="${esc(state.renameVal)}" oninput="state.renameVal=this.value"><input class="input" type="password" placeholder="PIN" value="${esc(state.renamePin)}" oninput="state.renamePin=this.value"><button class="smallBtn" onclick="renamePlayer()">✓</button><button class="smallBtn" onclick="state.rename=null;render()">✕</button>`:`<span>${avatar(p)} ${esc(p)}</span><button class="smallBtn" onclick="state.rename='${esc(p)}';state.renameVal='${esc(p)}';state.renamePin='';render()">✏️</button><button class="smallBtn" onclick="deletePlayer('${esc(p)}')">🗑️</button>`}</div>`).join('')}</div><div class="row"><input class="input" placeholder="Nuevo jugador" value="${esc(state.newName)}" oninput="state.newName=this.value"><input class="input" type="password" placeholder="PIN del jugador" value="${esc(state.newPin)}" oninput="state.newPin=this.value"><button class="btn green" onclick="addPlayer()">+ Añadir</button></div></div></div></div>`; }
+
+function groupResultCard(g){
+  const current = state.results.groups[g.letra] || { first:'', second:'', third:'', thirdQualified:false };
+  const options = TEAMS_BY_GROUP[g.letra];
+  const optionHtml = (selected) => `<option value="">-- Selecciona --</option>${options.map(t => `<option value="${esc(t)}" ${selected===t?'selected':''}>${esc(t)}</option>`).join('')}`;
+  return `<div class="card"><div class="cardH"><span>Grupo ${g.letra}</span><span class="pill">${current.thirdQualified ? '3º clasificado' : '3º no clasificado'}</span></div><div style="padding:12px" class="stack"><label class="muted">1º<select class="select" onchange="setGroupPosition('${g.letra}','first',this.value)">${optionHtml(current.first)}</select></label><label class="muted">2º<select class="select" onchange="setGroupPosition('${g.letra}','second',this.value)">${optionHtml(current.second)}</select></label><label class="muted">3º<select class="select" onchange="setGroupPosition('${g.letra}','third',this.value)">${optionHtml(current.third)}</select></label><label class="row"><input type="checkbox" ${current.thirdQualified?'checked':''} onchange="toggleThirdQualified('${g.letra}')"><span class="muted">Este 3º entra entre los 8 mejores terceros</span></label></div></div>`;
+}
+
+function thirdSlotCard(slotCode, title){
+  const assigned = state.results.thirdAssignments[slotCode] || '';
+  const options = qualifiedThirdTeams();
+  return `<div class="card"><div class="cardH"><span>${title}</span><span class="pill">${assigned ? '3'+assigned : 'sin asignar'}</span></div><div style="padding:12px" class="stack"><div class="muted">Terceros clasificados disponibles: ${options.length ? options.map(o=>`3${o.group}`).join(', ') : 'ninguno'}</div><select class="select" onchange="assignThirdSlot('${slotCode}',this.value)"><option value="">-- Selecciona tercero --</option>${options.map(o => `<option value="${o.group}" ${assigned===o.group?'selected':''}>${TEAM_MAP[o.team] || ''} ${o.team} (3${o.group})</option>`).join('')}</select><div class="muted">Se usará en el cruce ${slotCode.replace('SLOT','')}</div></div></div>`;
+}
+
+function bracketResultCard(phaseDef, phaseKey, pointsLabel){
+  return phaseDef.map(m => {
+    const [home,away] = matchupLabelHomeAway(m.home, m.away);
+    const result = state.results[phaseKey]?.[String(m.match)] || '';
+    return `<div class="card"><div class="cardH"><span>Partido ${m.match}</span><span style="color:var(--gold)">${pointsLabel}</span></div><div style="padding:12px"><div class="muted" style="margin-bottom:8px">${esc(home)} vs ${esc(away)}</div><button class="pick ${result===home?'on':''}" onclick="setMatchResult('${phaseKey}',${m.match},'${esc(home)}')"><span>${esc(home)}</span><span>${result===home?'✓':''}</span></button><div class="muted center" style="margin:6px 0">VS</div><button class="pick ${result===away?'on':''}" onclick="setMatchResult('${phaseKey}',${m.match},'${esc(away)}')"><span>${esc(away)}</span><span>${result===away?'✓':''}</span></button></div></div>`;
+  }).join('');
+}
+
+function adminResultsPanel(){
+  if(!state.admin) return '';
+  return `<div class="main"><div class="card"><div class="cardH">✅ Introducir resultados reales y actualizar cruces</div><div style="padding:14px"><div class="info blue">Los 1º y 2º se colocan automáticamente en dieciseisavos. Para los cruces contra terceros, este HTML te deja escoger qué 3º clasificado entra en cada slot. Después, los octavos/cuartos/semis/final se actualizan solos con los ganadores que vayas marcando.</div><h3 style="margin:0 0 12px 0">1) Clasificados de grupos</h3><div class="grid3">${GROUPS.map(groupResultCard).join('')}</div><h3 style="margin:20px 0 12px 0">2) Asignación de terceros clasificados a los cruces del cuadro</h3><div class="grid3">${[
+    ['SLOT74','Partido 74 · 1E vs 3º'],['SLOT77','Partido 77 · 1I vs 3º'],['SLOT79','Partido 79 · 1A vs 3º'],['SLOT80','Partido 80 · 1L vs 3º'],
+    ['SLOT81','Partido 81 · 1D vs 3º'],['SLOT82','Partido 82 · 1G vs 3º'],['SLOT85','Partido 85 · 1B vs 3º'],['SLOT87','Partido 87 · 1K vs 3º']
+  ].map(([slot,title])=>thirdSlotCard(slot,title)).join('')}</div><h3 style="margin:20px 0 12px 0">3) Resultados reales de eliminatorias</h3><div class="card"><div class="cardH">16avos (cruces ya con nombres)</div><div class="grid2" style="padding:12px">${bracketResultCard(ROUND32,'dieciseisavos','2 pts')}</div></div><div class="card"><div class="cardH">Octavos (se rellenan con ganadores de 16avos)</div><div class="grid2" style="padding:12px">${bracketResultCard(ROUND16,'octavos','3 pts')}</div></div><div class="card"><div class="cardH">Cuartos</div><div class="grid2" style="padding:12px">${bracketResultCard(QUARTERS,'cuartos','4 pts')}</div></div><div class="card"><div class="cardH">Semifinales</div><div class="grid2" style="padding:12px">${bracketResultCard(SEMIS,'semis','5 pts')}</div></div><div class="card"><div class="cardH">Final</div><div class="grid2" style="padding:12px">${bracketResultCard(FINAL,'final','6 pts')}</div></div></div></div></div>`;
+}
+
+function groupsView(){ const viewOnly = state.yo && !state.auth[slug(state.yo)]; const editable = !!state.yo && state.auth[slug(state.yo)] && !state.settings.blocked; return `<div class="info ${editable?'':(viewOnly?'blue':'red')}">${editable?'ℹ️':'👀'} Elige los <strong>2 equipos</strong> de cada grupo. ${editable?'':(viewOnly?'Estás viendo la apuesta de otra persona en modo lectura.':'Selecciona un jugador y desbloquea edición con su PIN.')}</div><div class="grid">${GROUPS.map(g => { const sel = myGroup(g.letra); const reales = [groupPos(g.letra,'first'), groupPos(g.letra,'second')].filter(Boolean); return `<div class="card"><div class="cardH"><span>Grupo ${g.letra}</span><span style="color:var(--gold)">+${sel.length}pt</span></div><div style="padding:12px">${g.equipos.map(([n,f]) => `<button class="pick ${sel.includes(n)?'on':''}" onclick="toggleGroup('${g.letra}','${esc(n)}')"><span>${f} ${esc(n)} ${reales.includes(n)?'✅':''}</span><span>${sel.includes(n)?'✓':''}</span></button>`).join('')}<div class="muted center">${sel.length===2?'✅ Listos':'Selecciona '+(2-sel.length)+' más'}</div></div></div>`; }).join('')}</div>`; }
+
+function phaseCardsForUser(def, phaseKey, ptsLabel){
+  return def.map(m => {
+    const [home,away] = matchupLabelHomeAway(m.home,m.away);
+    const sel = myPick(phaseKey, String(m.match));
+    return `<div class="card"><div class="cardH"><span>Partido ${m.match}</span><span style="color:var(--gold)">${ptsLabel}</span></div><div style="padding:12px"><div class="muted" style="margin-bottom:8px">${esc(home)} vs ${esc(away)}</div><button class="pick ${sel===home?'on':''}" onclick="chooseWinner('${phaseKey}','${m.match}','${esc(home)}')"><span>${esc(home)}</span><span>${sel===home?'✓':''}</span></button><div class="muted center" style="margin:6px 0">VS</div><button class="pick ${sel===away?'on':''}" onclick="chooseWinner('${phaseKey}','${m.match}','${esc(away)}')"><span>${esc(away)}</span><span>${sel===away?'✓':''}</span></button></div></div>`;
+  }).join('');
+}
+
+function phaseView(id){
+  const map = { dieciseisavos:[ROUND32,'2 pts'], octavos:[ROUND16,'3 pts'], cuartos:[QUARTERS,'4 pts'], semis:[SEMIS,'5 pts'], final:[FINAL,'6 pts'] };
+  const [def,label] = map[id];
+  const viewOnly = state.yo && !state.auth[slug(state.yo)];
+  const editable = !!state.yo && state.auth[slug(state.yo)] && !state.settings.blocked && phaseOpen(id);
+  return `<div class="info ${editable?'':(viewOnly?'blue':'red')}">${editable?'ℹ️':'👀'} Los cruces se actualizan con los nombres reales según lo que vaya metiendo el admin. ${editable?'':(viewOnly?'Estás viendo la apuesta de otra persona en modo lectura.':'Necesitas desbloquear edición o esperar a que esa fase se abra.')}</div><div class="grid2">${phaseCardsForUser(def,id,label)}</div>`;
+}
+
+function tableView(){ const rows=[...state.players].map(p=>({name:p,...points(p)})).sort((a,b)=>b.total-a.total || a.name.localeCompare(b.name)); return `<div class="card"><div class="cardH">📊 Clasificación general</div><table><thead><tr><th>#</th><th>Jugador</th><th>Grupos</th><th>Knockout</th><th>Total</th><th>Ver</th></tr></thead><tbody>${rows.map((r,i)=>`<tr><td>${i+1}</td><td>${avatar(r.name)} ${esc(r.name)}</td><td>${r.grupos}</td><td>${r.knockout}</td><td style="color:var(--green);font-weight:900">${r.total}</td><td><button class="smallBtn" onclick="pickPlayer('${esc(r.name)}');state.fase='grupos';render()">Abrir</button></td></tr>`).join('') || '<tr><td colspan="6" class="center muted">Aún no hay jugadores</td></tr>'}</tbody></table></div>`; }
+
+function main(){ if(!CONFIG_OK){ return `<div class="main"><div class="card"><div class="cardH">☁️ Preparada para compartir por enlace</div><div style="padding:14px"><div class="info blue">Esta versión necesita que pegues tu <strong>FIREBASE_CONFIG</strong> real.</div><div style="white-space:pre-wrap;background:#111;border:1px solid #333;padding:12px;border-radius:10px">1) Pega tu configuración real de Firebase
+2) Guarda el archivo
+3) Súbelo como index.html
+4) Marca 1º, 2º y 3º por grupo
+5) Asigna los terceros a los slots de 16avos</div></div></div></div>`; } if(state.loading){ return `<div class="main"><div class="card"><div class="cardH">Cargando porra compartida…</div><div style="padding:14px" class="muted">Conectando con Firestore en tiempo real.</div></div></div>`; } return `<div class="main">${state.fase==='grupos'?groupsView():['dieciseisavos','octavos','cuartos','semis','final'].includes(state.fase)?phaseView(state.fase):tableView()}</div>`; }
+
+function render(){ document.getElementById('app').innerHTML = `${state.toast?`<div class="toast ${state.toast.color}">${esc(state.toast.msg)}</div>`:''}${renderModal()}${header()}${state.settings.blocked?'<div class="main"><div class="info red">🔒 Las apuestas están cerradas. Solo el admin puede reabrirlas.</div></div>':''}${adminPlayersPanel()}${adminResultsPanel()}${tabs()}${main()}`; document.querySelectorAll('[autofocus]').forEach(x=>{try{x.focus()}catch(e){}}); }
+function selectPhase(id){ if(id!=='tabla' && !phaseOpen(id)) return flash('🔐 Esa fase todavía no está abierta','red'); state.fase=id; render(); }
+
+window.state=state; window.render=render; window.addPlayer=addPlayer; window.deletePlayer=deletePlayer; window.renamePlayer=renamePlayer; window.pickPlayer=pickPlayer; window.toggleGroup=toggleGroup; window.chooseWinner=chooseWinner; window.selectPhase=selectPhase; window.ensureEdit=ensureEdit; window.submitAuth=submitAuth; window.openAdmin=openAdmin; window.submitAdmin=submitAdmin; window.setPhase=setPhase; window.toggleBlocked=toggleBlocked; window.setGroupPosition=setGroupPosition; window.toggleThirdQualified=toggleThirdQualified; window.assignThirdSlot=assignThirdSlot; window.setMatchResult=setMatchResult;
+render(); init();
+</script>
+</body>
+</html>
