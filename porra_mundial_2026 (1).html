@@ -1,0 +1,510 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Porra Mundial 2026</title>
+  <style>
+    :root{
+      --bg:#0D0D0D;--panel:#1A1A1A;--panel2:#2A2A2A;--line:#333;--muted:#888;--text:#F0F0F0;
+      --green:#00C65E;--gold:#FFD700;--red:#FF4444;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+    button,input,select{font:inherit}
+    .app{min-height:100vh}
+    .header{background:linear-gradient(135deg,#0a2a0a,#0D0D0D);border-bottom:2px solid var(--green);padding:14px 20px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:80;flex-wrap:wrap}
+    .logo{font-weight:900;font-size:20px;letter-spacing:2px;color:var(--green);text-transform:uppercase;white-space:nowrap}
+    .sublogo{font-size:11px;color:#666;margin-top:1px}
+    .chips{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+    .chip{background:#2A2A2A;border:2px solid transparent;border-radius:999px;padding:6px 14px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px}
+    .chip.active{background:rgba(0,198,94,.15);border-color:var(--green);color:var(--green)}
+    .actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .btnG,.btnO,.btnR,.btnSm,.btnLock{border:none;border-radius:8px;padding:8px 18px;font-weight:700;cursor:pointer;font-size:13px}
+    .btnG{background:var(--green);color:#000}
+    .btnO{background:transparent;border:2px solid var(--green);color:var(--green)}
+    .btnR{background:transparent;border:2px solid var(--red);color:var(--red)}
+    .btnSm{background:transparent;border:1px solid #666;color:#ddd;padding:3px 10px;border-radius:6px;font-size:11px}
+    .btnSm.yellow{border-color:var(--gold);color:var(--gold)}
+    .btnSm.red{border-color:var(--red);color:var(--red)}
+    .btnLock{background:rgba(0,198,94,.15);border:2px solid var(--green);color:var(--green);display:flex;align-items:center;gap:6px;padding:7px 14px}
+    .btnLock.locked{background:rgba(255,68,68,.15);border-color:var(--red);color:var(--red)}
+    .banner-lock{background:rgba(255,68,68,.1);border-bottom:1px solid rgba(255,68,68,.3);padding:10px 20px;font-size:13px;color:#FF8888;font-weight:600}
+    .adminBar{background:#161616;border-bottom:1px solid var(--line);padding:20px}
+    .container{max-width:1100px;margin:0 auto}
+    .sectionTitle{font-weight:900;font-size:16px;color:var(--green);margin-bottom:14px}
+    .rowWrap{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+    .playerPill{background:#2A2A2A;border-radius:10px;padding:8px 14px;display:flex;align-items:center;gap:8px}
+    .nav{display:flex;background:#1A1A1A;border-bottom:1px solid #333;overflow-x:auto;padding:0 16px}
+    .tab{padding:12px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#888;cursor:pointer;background:none;border:none;border-bottom:3px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:5px}
+    .tab.active{color:var(--green);border-bottom-color:var(--green)}
+    .tab:disabled{cursor:not-allowed;opacity:.55}
+    .badge{background:#2A2A2A;color:#888;border-radius:999px;padding:1px 7px;font-size:10px}
+    .tab.active .badge{background:var(--green);color:#000}
+    main{padding:20px;max-width:1100px;margin:0 auto}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:12px}
+    .cardH{background:var(--panel2);padding:10px 16px;display:flex;align-items:center;gap:10px}
+    .info{background:rgba(0,198,94,.08);border:1px solid rgba(0,198,94,.25);border-radius:10px;padding:10px 16px;font-size:13px;color:var(--green);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+    .info.red{background:rgba(255,68,68,.08);border-color:rgba(255,68,68,.25);color:#FF8888}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+    .grid-elim{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+    .pickRow{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;border:2px solid transparent;background:transparent;margin-bottom:4px;user-select:none}
+    .pickRow.on{border-color:var(--green);background:rgba(0,198,94,.1)}
+    .pickRow.disabled{opacity:.6;cursor:default}
+    .pickText.on{color:var(--green);font-weight:700}
+    .check{width:22px;height:22px;border-radius:50%;border:2px solid #555;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+    .check.on{border-color:var(--green);background:var(--green);color:#000}
+    .input{background:#2A2A2A;border:1px solid #444;border-radius:8px;padding:8px 14px;color:var(--text);font-size:14px;outline:none;flex:1;min-width:160px}
+    .select{background:#2A2A2A;border:1px solid #444;border-radius:8px;padding:7px 12px;color:var(--text)}
+    .tiny{font-size:11px;color:#777}
+    .ok{color:var(--green)}
+    .center{text-align:center}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:11px 14px;text-align:left}
+    thead tr{border-bottom:1px solid #333}
+    tbody tr{border-bottom:1px solid #222}
+    th{font-size:10px;text-transform:uppercase;color:#555;letter-spacing:.5px}
+    .modalBack{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px}
+    .modal{background:#1A1A1A;border:1px solid #444;border-radius:16px;padding:28px;min-width:300px;max-width:420px;width:100%}
+    .modalTitle{font-weight:900;font-size:18px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center}
+    .closeX{background:none;border:none;color:#888;font-size:20px;cursor:pointer;line-height:1}
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:10px 22px;border-radius:999px;font-weight:700;font-size:14px;z-index:9999;box-shadow:0 4px 20px rgba(0,198,94,.4);pointer-events:none}
+    .toast.green{background:var(--green);color:#000}
+    .toast.red{background:var(--red);color:#fff;box-shadow:0 4px 20px rgba(255,68,68,.4)}
+    .phaseHelp{font-size:12px;color:#aaa;margin-left:6px}
+    @media (max-width:700px){
+      .header{padding:12px}
+      main{padding:14px}
+      .grid,.grid-elim{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const GRUPOS = [
+  { letra:"A", equipos:[{n:"México",f:"🇲🇽"},{n:"Sudáfrica",f:"🇿🇦"},{n:"Corea del Sur",f:"🇰🇷"},{n:"República Checa",f:"🇨🇿"}]},
+  { letra:"B", equipos:[{n:"Canadá",f:"🇨🇦"},{n:"Bosnia y Herzegovina",f:"🇧🇦"},{n:"Catar",f:"🇶🇦"},{n:"Suiza",f:"🇨🇭"}]},
+  { letra:"C", equipos:[{n:"Brasil",f:"🇧🇷"},{n:"Marruecos",f:"🇲🇦"},{n:"Haití",f:"🇭🇹"},{n:"Escocia",f:"🏴"}]},
+  { letra:"D", equipos:[{n:"Estados Unidos",f:"🇺🇸"},{n:"Paraguay",f:"🇵🇾"},{n:"Australia",f:"🇦🇺"},{n:"Turquía",f:"🇹🇷"}]},
+  { letra:"E", equipos:[{n:"Alemania",f:"🇩🇪"},{n:"Curazao",f:"🇨🇼"},{n:"Costa de Marfil",f:"🇨🇮"},{n:"Ecuador",f:"🇪🇨"}]},
+  { letra:"F", equipos:[{n:"Países Bajos",f:"🇳🇱"},{n:"Japón",f:"🇯🇵"},{n:"Suecia",f:"🇸🇪"},{n:"Túnez",f:"🇹🇳"}]},
+  { letra:"G", equipos:[{n:"Bélgica",f:"🇧🇪"},{n:"Egipto",f:"🇪🇬"},{n:"Irán",f:"🇮🇷"},{n:"Nueva Zelanda",f:"🇳🇿"}]},
+  { letra:"H", equipos:[{n:"España",f:"🇪🇸"},{n:"Cabo Verde",f:"🇨🇻"},{n:"Arabia Saudí",f:"🇸🇦"},{n:"Uruguay",f:"🇺🇾"}]},
+  { letra:"I", equipos:[{n:"Francia",f:"🇫🇷"},{n:"Senegal",f:"🇸🇳"},{n:"Irak",f:"🇮🇶"},{n:"Noruega",f:"🇳🇴"}]},
+  { letra:"J", equipos:[{n:"Argentina",f:"🇦🇷"},{n:"Argelia",f:"🇩🇿"},{n:"Austria",f:"🇦🇹"},{n:"Jordania",f:"🇯🇴"}]},
+  { letra:"K", equipos:[{n:"Portugal",f:"🇵🇹"},{n:"RD Congo",f:"🇨🇩"},{n:"Uzbekistán",f:"🇺🇿"},{n:"Colombia",f:"🇨🇴"}]},
+  { letra:"L", equipos:[{n:"Inglaterra",f:"🏴"},{n:"Croacia",f:"🇭🇷"},{n:"Ghana",f:"🇬🇭"},{n:"Panamá",f:"🇵🇦"}]},
+];
+
+const DIECISEISAVOS = [
+  "2A vs 2B",
+  "1E vs 3A/B/C/D/F",
+  "1F vs 2C",
+  "1C vs 2F",
+  "1I vs 3C/D/F/G/H",
+  "2E vs 2I",
+  "1A vs 3C/E/F/H/I",
+  "1L vs 3E/H/I/J/K",
+  "1D vs 3B/E/F/I/J",
+  "1G vs 3A/E/H/I/J",
+  "2K vs 2L",
+  "1H vs 2J",
+  "1B vs 3E/F/G/I/J",
+  "1J vs 2H",
+  "1K vs 3D/E/I/J/L",
+  "2D vs 2G"
+];
+const OCTAVOS = [
+  "Gan. D74 vs Gan. D77",
+  "Gan. D73 vs Gan. D75",
+  "Gan. D76 vs Gan. D78",
+  "Gan. D79 vs Gan. D80",
+  "Gan. D83 vs Gan. D84",
+  "Gan. D81 vs Gan. D82",
+  "Gan. D86 vs Gan. D88",
+  "Gan. D85 vs Gan. D87"
+];
+const CUARTOS = [
+  "Gan. O89 vs Gan. O90",
+  "Gan. O91 vs Gan. O92",
+  "Gan. O93 vs Gan. O94",
+  "Gan. O95 vs Gan. O96"
+];
+const SEMIS = ["SF1: Gan. C97 vs Gan. C98", "SF2: Gan. C99 vs Gan. C100"];
+const FINAL = ["🏆 GRAN FINAL: Gan. SF1 vs Gan. SF2"];
+
+const FASES = [
+  {id:"grupos", label:"⚽ Grupos", badge:24, kind:"group"},
+  {id:"dieciseisavos", label:"⚔️ 16avos", badge:16, kind:"elim"},
+  {id:"octavos", label:"🔥 Octavos", badge:8, kind:"elim"},
+  {id:"cuartos", label:"💥 Cuartos", badge:4, kind:"elim"},
+  {id:"semis", label:"🚀 Semis", badge:2, kind:"elim"},
+  {id:"final", label:"🏆 Final", badge:1, kind:"elim"},
+  {id:"tabla", label:"📊 Tabla", badge:null, kind:"table"}
+];
+const PTS = {dieciseisavos:2, octavos:3, cuartos:4, semis:5, final:6};
+const MAX_FASE_EDITABLE = ["grupos","dieciseisavos","octavos","cuartos","semis","final"];
+const AVATARS = ["⚽","🏃","🥅","🎯","🔥","💪","⭐","🦁","🐯","🦅"];
+const avatar = n => { let h=0; for (const c of n) h=(h*31+c.charCodeAt(0))%AVATARS.length; return AVATARS[h]; };
+
+const KEYS = {
+  jugadores:"porra:jugadores",
+  apuestas:"porra:apuestas",
+  bloqueado:"porra:bloqueado",
+  adminPwd:"porra:adminPwd",
+  faseDesbloqueada:"porra:faseDesbloqueada"
+};
+
+const CRUCES = { dieciseisavos:DIECISEISAVOS, octavos:OCTAVOS, cuartos:CUARTOS, semis:SEMIS, final:FINAL };
+const PHASE_INDEX = Object.fromEntries(MAX_FASE_EDITABLE.map((id,i)=>[id,i]));
+
+function lsGet(key){ try{ const v=localStorage.getItem(key); return v ? JSON.parse(v) : null; }catch{ return null; } }
+function lsSet(key,val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){ console.error('lsSet', key, e); } }
+const state = {
+  jugadores: lsGet(KEYS.jugadores) || [],
+  apuestas: lsGet(KEYS.apuestas) || {},
+  bloqueado: lsGet(KEYS.bloqueado) === true,
+  adminPwd: lsGet(KEYS.adminPwd),
+  faseDesbloqueada: lsGet(KEYS.faseDesbloqueada) || 'grupos',
+  yo: null,
+  fase: 'grupos',
+  editando: false,
+  nuevoNombre: '',
+  renombrando: null,
+  renombreVal: '',
+  adminMode: false,
+  showAdminModal: false,
+  pwdInput: '',
+  pwdError: '',
+  toast: null,
+};
+
+let toastTimer = null;
+function flash(msg, color='green'){
+  state.toast = {msg,color};
+  if(toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ state.toast=null; render(); }, 2400);
+  render();
+}
+
+function saveJugadores(lista){ state.jugadores = lista; lsSet(KEYS.jugadores, lista); }
+function saveApuestas(ap){ state.apuestas = ap; lsSet(KEYS.apuestas, ap); }
+function saveBloqueado(v){ state.bloqueado = v; lsSet(KEYS.bloqueado, v); }
+function saveAdminPwd(v){ state.adminPwd = v; lsSet(KEYS.adminPwd, v); }
+function saveFaseDesbloqueada(v){ state.faseDesbloqueada = v; lsSet(KEYS.faseDesbloqueada, v); }
+function isPhaseUnlocked(id){ if(id==='tabla') return true; return PHASE_INDEX[id] <= PHASE_INDEX[state.faseDesbloqueada]; }
+function canBetInPhase(id){ return isPhaseUnlocked(id) && !state.bloqueado; }
+function phaseProgress(id){
+  const yo = state.yo;
+  if(!yo) return '0/' + (FASES.find(f=>f.id===id)?.badge ?? 0);
+  if(id === 'grupos'){
+    let n=0; GRUPOS.forEach(g => n += (state.apuestas[yo]?.grupos?.[g.letra] || []).length );
+    return `${n}/24`;
+  }
+  const max = FASES.find(f=>f.id===id)?.badge;
+  if(max == null) return '';
+  return `${Object.keys(state.apuestas[yo]?.[id] || {}).length}/${max}`;
+}
+
+function handleAdminClick(){
+  if(state.adminMode){ state.adminMode=false; flash('🔒 Saliste del modo admin'); return; }
+  state.pwdInput=''; state.pwdError=''; state.showAdminModal=true; render();
+}
+function submitAdmin(){
+  const pwd = state.pwdInput.trim();
+  if(!state.adminPwd){
+    if(pwd.length < 3){ state.pwdError='Mínimo 3 caracteres'; render(); return; }
+    saveAdminPwd(pwd);
+    state.adminMode = true; state.showAdminModal=false; flash('🔑 Contraseña admin establecida'); return;
+  }
+  if(pwd === state.adminPwd){ state.adminMode=true; state.showAdminModal=false; flash('🔑 Modo admin activado'); }
+  else { state.pwdError='Contraseña incorrecta'; render(); }
+}
+function toggleBloqueo(){ const nuevo = !state.bloqueado; saveBloqueado(nuevo); flash(nuevo ? '🔒 Apuestas bloqueadas' : '🔓 Apuestas desbloqueadas', nuevo ? 'red' : 'green'); }
+function agregarJugador(){
+  const n = state.nuevoNombre.trim();
+  if(!n || state.jugadores.includes(n)){ flash('⚠️ Nombre vacío o repetido', 'red'); return; }
+  saveJugadores([...state.jugadores, n]); state.nuevoNombre=''; state.yo=n; flash(`👤 Bienvenido, ${n}!`);
+}
+function eliminarJugador(nombre){
+  if(!confirm(`¿Eliminar a ${nombre} y todas sus apuestas?`)) return;
+  const nueva = state.jugadores.filter(j=>j!==nombre);
+  const ap = {...state.apuestas}; delete ap[nombre];
+  saveJugadores(nueva); saveApuestas(ap); if(state.yo===nombre) state.yo=null; flash(`🗑️ ${nombre} eliminado`, 'red');
+}
+function confirmarRenombre(){
+  const nuevo = state.renombreVal.trim();
+  const viejo = state.renombrando;
+  if(!nuevo || (nuevo !== viejo && state.jugadores.includes(nuevo))){ flash('⚠️ Nombre inválido', 'red'); return; }
+  const lista = state.jugadores.map(j => j===viejo ? nuevo : j);
+  const ap = {...state.apuestas};
+  if(ap[viejo]){ ap[nuevo] = ap[viejo]; delete ap[viejo]; }
+  saveJugadores(lista); saveApuestas(ap);
+  if(state.yo===viejo) state.yo=nuevo;
+  state.renombrando=null; state.renombreVal=''; flash(`✏️ Renombrado a ${nuevo}`);
+}
+function selectPlayer(nombre){ state.yo=nombre; flash(`👤 Jugando como ${nombre}`); }
+function selectPhase(id){
+  if(id!=='tabla' && !isPhaseUnlocked(id)){ flash('🔐 Esa fase todavía no está abierta', 'red'); return; }
+  state.fase=id; render();
+}
+function setFaseDesbloqueada(id){ saveFaseDesbloqueada(id); if(!isPhaseUnlocked(state.fase)) state.fase=id; flash(`🧩 Porra abierta hasta: ${phaseLabel(id)}`); }
+function phaseLabel(id){ return FASES.find(f=>f.id===id)?.label.replace(/^\S+\s?/,'') || id; }
+function toggleGrupo(letra, equipo){
+  if(!state.yo){ flash('⚠️ Elige tu nombre primero', 'red'); return; }
+  if(!canBetInPhase('grupos')){ flash('🔒 La fase de grupos está cerrada o aún no abierta', 'red'); return; }
+  const ap = structuredClone(state.apuestas);
+  if(!ap[state.yo]) ap[state.yo] = {};
+  if(!ap[state.yo].grupos) ap[state.yo].grupos = {};
+  const sel = [...(ap[state.yo].grupos[letra] || [])];
+  const idx = sel.indexOf(equipo);
+  if(idx >= 0) sel.splice(idx,1);
+  else if(sel.length < 2) sel.push(equipo);
+  else { flash('⚠️ Ya elegiste 2 equipos', 'red'); return; }
+  ap[state.yo].grupos[letra] = sel;
+  saveApuestas(ap); render();
+}
+function elegirGanador(faseId, idx, equipo){
+  if(!state.yo){ flash('⚠️ Elige tu nombre primero', 'red'); return; }
+  if(!canBetInPhase(faseId)){ flash('🔒 Esta fase está cerrada o aún no abierta', 'red'); return; }
+  const ap = structuredClone(state.apuestas);
+  if(!ap[state.yo]) ap[state.yo] = {};
+  if(!ap[state.yo][faseId]) ap[state.yo][faseId] = {};
+  ap[state.yo][faseId][idx] = equipo;
+  saveApuestas(ap); flash('✅ Guardado');
+}
+function miGrupo(letra){ return state.apuestas[state.yo]?.grupos?.[letra] || []; }
+function miElim(faseId, i){ return state.apuestas[state.yo]?.[faseId]?.[i] ?? null; }
+function ptsPorJugador(j){
+  const ap = state.apuestas[j] || {};
+  let g = 0; GRUPOS.forEach(gr => g += (ap.grupos?.[gr.letra] || []).length);
+  let k = 0; ['dieciseisavos','octavos','cuartos','semis','final'].forEach(f => k += Object.keys(ap[f]||{}).length * PTS[f]);
+  return {grupos:g, knockout:k, total:g+k};
+}
+function esc(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+function renderModal(){
+  if(!state.showAdminModal) return '';
+  return `
+    <div class="modalBack">
+      <div class="modal">
+        <div class="modalTitle">
+          <span>${state.adminPwd ? '🔑 Acceso admin' : '🔑 Crear contraseña admin'}</span>
+          <button class="closeX" onclick="state.showAdminModal=false;render()">✕</button>
+        </div>
+        <p style="font-size:13px;color:#888;margin-bottom:16px;">
+          ${state.adminPwd ? 'Introduce la contraseña para gestionar jugadores, abrir fases y bloquear apuestas.' : 'Primera vez: elige una contraseña para el admin.'}
+        </p>
+        <input class="input" style="width:100%;margin-bottom:8px" type="password" placeholder="Contraseña…" value="${esc(state.pwdInput)}" oninput="state.pwdInput=this.value;state.pwdError='';render()" onkeydown="if(event.key==='Enter')submitAdmin()" autofocus />
+        ${state.pwdError ? `<div style="color:var(--red);font-size:12px;margin-bottom:8px">${esc(state.pwdError)}</div>` : ''}
+        <button class="btnG" style="width:100%;padding:10px" onclick="submitAdmin()">${state.adminPwd ? 'Entrar' : 'Establecer contraseña'}</button>
+      </div>
+    </div>`;
+}
+
+function renderAdminPanel(){
+  if(!(state.adminMode && state.editando)) return '';
+  return `
+    <div class="adminBar">
+      <div class="container">
+        <div class="sectionTitle">👥 Gestionar jugadores</div>
+        <div class="rowWrap">
+          ${state.jugadores.map(j => `
+            <div class="playerPill">
+              ${state.renombrando===j ? `
+                <input class="input" style="width:120px;padding:4px 10px;font-size:13px" value="${esc(state.renombreVal)}" oninput="state.renombreVal=this.value" onkeydown="if(event.key==='Enter')confirmarRenombre()" autofocus />
+                <button class="btnSm" style="border-color:var(--green);color:var(--green)" onclick="confirmarRenombre()">✓</button>
+                <button class="btnSm" onclick="state.renombrando=null;state.renombreVal='';render()">✕</button>
+              ` : `
+                <span style="font-weight:600">${avatar(j)} ${esc(j)}</span>
+                <button class="btnSm yellow" onclick="state.renombrando='${esc(j)}';state.renombreVal='${esc(j)}';render()">✏️</button>
+                <button class="btnSm red" onclick="eliminarJugador('${esc(j)}')">🗑️</button>
+              `}
+            </div>`).join('')}
+          ${state.jugadores.length===0 ? '<span style="color:#555;font-size:13px">Sin jugadores aún</span>' : ''}
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input class="input" placeholder="Nombre del nuevo jugador…" value="${esc(state.nuevoNombre)}" maxlength="20" oninput="state.nuevoNombre=this.value" onkeydown="if(event.key==='Enter')agregarJugador()" />
+          <button class="btnG" onclick="agregarJugador()">+ Añadir</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderHeader(){
+  return `
+    <div class="header">
+      <div style="margin-right:8px">
+        <div class="logo">Porra <span style="color:var(--gold)">Mundial</span> 2026</div>
+        <div class="sublogo">🇺🇸 USA · 🇨🇦 CAN · 🇲🇽 MEX</div>
+      </div>
+      <div class="chips">
+        ${state.jugadores.map(j => `<button class="chip ${state.yo===j?'active':''}" onclick="selectPlayer('${esc(j)}')">${avatar(j)} ${esc(j)}</button>`).join('')}
+      </div>
+      <div class="actions">
+        ${state.adminMode ? `<button class="btnLock ${state.bloqueado?'locked':''}" onclick="toggleBloqueo()">${state.bloqueado ? '🔒 Bloqueado' : '🔓 Abierto'}</button>` : ''}
+        ${state.adminMode ? `
+          <label style="display:flex;align-items:center;gap:8px;color:#aaa;font-size:12px">
+            <span>Fase abierta:</span>
+            <select class="select" onchange="setFaseDesbloqueada(this.value)">
+              ${MAX_FASE_EDITABLE.map(id => `<option value="${id}" ${state.faseDesbloqueada===id ? 'selected' : ''}>${phaseLabel(id)}</option>`).join('')}
+            </select>
+          </label>` : ''}
+        ${state.adminMode ? `<button class="btnO" onclick="state.editando=!state.editando;render()">${state.editando ? '✕ Cerrar' : '✏️ Jugadores'}</button>` : ''}
+        <button class="${state.adminMode ? 'btnR' : 'btnO'}" onclick="handleAdminClick()">${state.adminMode ? 'Salir admin' : '⚙️ Admin'}</button>
+      </div>
+    </div>`;
+}
+
+function renderTabs(){
+  return `
+    <nav class="nav">
+      ${FASES.map(f => {
+        const unlocked = isPhaseUnlocked(f.id);
+        const disabled = f.id !== 'tabla' && !unlocked;
+        return `<button class="tab ${state.fase===f.id?'active':''}" ${disabled?'disabled':''} onclick="selectPhase('${f.id}')">
+          ${f.label}
+          ${f.badge != null && state.yo ? `<span class="badge">${phaseProgress(f.id)}</span>` : ''}
+          ${disabled ? '<span class="phaseHelp">🔒</span>' : ''}
+        </button>`;
+      }).join('')}
+    </nav>`;
+}
+
+function renderGrupos(){
+  const editable = canBetInPhase('grupos');
+  return `
+    <div class="info ${editable ? '' : 'red'}">${editable ? 'ℹ️' : '🔒'} Elige los <strong>2 equipos</strong> de cada grupo — <strong>1 pt</strong> por acierto. ${editable ? '' : 'La fase de grupos está cerrada o aún no se ha abierto.'}</div>
+    <div class="grid">
+      ${GRUPOS.map(g => {
+        const sel = miGrupo(g.letra);
+        return `<div class="card">
+          <div class="cardH">
+            <span style="font-weight:900;font-size:24px;color:var(--green);line-height:1">${g.letra}</span>
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:13px">Grupo ${g.letra}</div>
+              <div class="tiny">Elige 2 clasificados</div>
+            </div>
+            <span style="font-weight:900;font-size:15px;color:var(--gold)">+${sel.length}pt</span>
+          </div>
+          <div style="padding:12px 14px">
+            ${g.equipos.map(e => {
+              const on = sel.includes(e.n);
+              return `<div class="pickRow ${on?'on':''} ${!editable && !on?'disabled':''}" onclick="toggleGrupo('${g.letra}','${esc(e.n)}')">
+                <span style="font-size:20px">${e.f}</span>
+                <span class="pickText ${on?'on':''}" style="flex:1;font-size:13px">${esc(e.n)}</span>
+                <div class="check ${on?'on':''}">${on?'✓':''}</div>
+              </div>`;
+            }).join('')}
+          </div>
+          <div style="padding:0 14px 10px" class="tiny center ${sel.length===2?'ok':''}">${sel.length===2 ? '✅ Listos' : 'Selecciona ' + (2-sel.length) + ' más'}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function renderElim(faseId){
+  const cfg = {
+    dieciseisavos:{cruces:DIECISEISAVOS, pts:PTS.dieciseisavos, info:'Elige el ganador de cada cruce de dieciseisavos — <strong>2 pts</strong> por acierto.'},
+    octavos:{cruces:OCTAVOS, pts:PTS.octavos, info:'Elige el ganador de cada cruce de octavos — <strong>3 pts</strong> por acierto.'},
+    cuartos:{cruces:CUARTOS, pts:PTS.cuartos, info:'Elige el ganador de cada cruce de cuartos — <strong>4 pts</strong> por acierto.'},
+    semis:{cruces:SEMIS, pts:PTS.semis, info:'Elige los dos finalistas — <strong>5 pts</strong> por acierto.'},
+    final:{cruces:FINAL, pts:PTS.final, info:'Elige el campeón del mundo — <strong>6 pts</strong>.'},
+  }[faseId];
+  const editable = canBetInPhase(faseId);
+  return `
+    <div class="info ${editable ? '' : 'red'}">${editable ? 'ℹ️' : '🔒'} ${cfg.info} ${editable ? '' : 'Esta fase está cerrada o aún no se ha abierto.'}</div>
+    <div class="grid-elim">
+      ${cfg.cruces.map((label, i) => {
+        const raw = label.replace(/^[^:]*:\s*/, '');
+        const partes = raw.split(' vs ');
+        const e1 = (partes[0] || 'Equipo 1').trim();
+        const e2 = (partes[1] || 'Equipo 2').trim();
+        const sel = miElim(faseId, i);
+        return `<div class="card">
+          <div class="cardH" style="justify-content:space-between">
+            <span style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px">${esc(label)}</span>
+            <span style="color:var(--gold);font-weight:700;font-size:12px">+${cfg.pts}pts</span>
+          </div>
+          <div style="padding:12px 14px">
+            ${[e1,e2].map((eq,ei)=>{
+              const val = ei===0?e1:e2;
+              const on = sel===val;
+              return `${ei===1 ? '<div class="center" style="font-size:11px;color:#555;margin:3px 0">VS</div>' : ''}
+                <div class="pickRow ${on?'on':''} ${!editable && !on?'disabled':''}" onclick="elegirGanador('${faseId}', ${i}, '${esc(val)}')">
+                  <span class="pickText ${on?'on':''}" style="flex:1;font-size:13px">${esc(eq)}</span>
+                  <div class="check ${on?'on':''}">${on?'✓':''}</div>
+                </div>`;
+            }).join('')}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function renderTabla(){
+  const rows = [...state.jugadores].map(j => ({nombre:j, ...ptsPorJugador(j)})).sort((a,b)=>b.total-a.total);
+  return `
+    <div style="font-weight:900;font-size:22px;color:var(--gold);margin-bottom:4px">📊 Clasificación</div>
+    <div class="card" style="margin-bottom:20px">
+      <div class="cardH"><span style="font-weight:700;color:#888;text-transform:uppercase;font-size:11px;letter-spacing:1px">Sistema de puntos</span></div>
+      <div style="padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">
+        ${[['1 pt','Clasificado a dieciseisavos'],['2 pts','Ganador en dieciseisavos'],['3 pts','Ganador en octavos'],['4 pts','Ganador en cuartos'],['5 pts','Finalista correcto'],['6 pts','Campeón del mundo']].map(([p,d]) => `<div style="background:#2A2A2A;border-radius:10px;padding:12px;text-align:center"><div style="font-weight:900;font-size:22px;color:var(--green);line-height:1">${p}</div><div class="tiny" style="margin-top:4px">${d}</div></div>`).join('')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="cardH"><span style="font-weight:900;font-size:16px;color:var(--gold)">🏅 Clasificación general</span></div>
+      <table>
+        <thead><tr>${['#','Jugador','Grupos','Knockout','Total'].map(h => `<th>${h}</th>`).join('')}</tr></thead>
+        <tbody>
+        ${rows.map((row,i)=>`<tr>
+          <td style="color:${['#FFD700','#C0C0C0','#CD7F32'][i]||'#F0F0F0'};font-weight:700">${i+1}</td>
+          <td style="font-weight:600">${avatar(row.nombre)} ${esc(row.nombre)} ${row.nombre===state.yo ? '<span style="font-size:10px;background:var(--green);color:#000;border-radius:999px;padding:1px 6px;margin-left:6px">tú</span>' : ''}</td>
+          <td style="color:#aaa">${row.grupos}</td><td style="color:#aaa">${row.knockout}</td><td style="font-weight:900;font-size:16px;color:var(--green)">${row.total}</td>
+        </tr>`).join('') || '<tr><td colspan="5" style="padding:24px;text-align:center;color:#444">Aún no hay jugadores</td></tr>'}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function renderMain(){
+  let content = '';
+  if(state.fase === 'grupos') content = renderGrupos();
+  else if(['dieciseisavos','octavos','cuartos','semis','final'].includes(state.fase)) content = renderElim(state.fase);
+  else content = renderTabla();
+  return `<main>${content}</main>`;
+}
+
+function render(){
+  document.getElementById('app').innerHTML = `
+    <div class="app">
+      ${state.toast ? `<div class="toast ${state.toast.color}">${esc(state.toast.msg)}</div>` : ''}
+      ${renderModal()}
+      ${renderHeader()}
+      ${state.bloqueado ? '<div class="banner-lock">🔒 Las apuestas están cerradas. Solo el admin puede reabrirlas.</div>' : ''}
+      ${renderAdminPanel()}
+      ${renderTabs()}
+      ${renderMain()}
+    </div>`;
+  document.querySelectorAll('[autofocus]').forEach(el => { try{ el.focus(); }catch{} });
+}
+
+window.state = state;
+window.render = render;
+window.submitAdmin = submitAdmin;
+window.handleAdminClick = handleAdminClick;
+window.toggleBloqueo = toggleBloqueo;
+window.agregarJugador = agregarJugador;
+window.eliminarJugador = eliminarJugador;
+window.confirmarRenombre = confirmarRenombre;
+window.selectPlayer = selectPlayer;
+window.selectPhase = selectPhase;
+window.setFaseDesbloqueada = setFaseDesbloqueada;
+window.toggleGrupo = toggleGrupo;
+window.elegirGanador = elegirGanador;
+render();
+</script>
+</body>
+</html>
