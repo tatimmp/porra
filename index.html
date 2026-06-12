@@ -75,24 +75,8 @@ const CRUCES = {dieciseisavos:R32,octavos:R16,cuartos:QF,semis:SF,final:F};
 const PTS = {dieciseisavos:2,octavos:3,cuartos:4,semis:5,final:6};
 const ORDER = ['grupos','dieciseisavos','octavos','cuartos','semis','final'];
 const INDEX = Object.fromEntries(ORDER.map((x,i)=>[x,i]));
+
 const DEFAULT_SETTINGS = { blocked:false, unlockedPhase:'grupos', adminPinHash:null };
-const APP_ID = 'worldcup2026';
-const state = {
-  players:[],
-bets:{},
-results:{...EMPTY_RESULTS},
-settings:{...DEFAULT_SETTINGS}, yo:sessionStorage.getItem('porra:yo')||null,
-  auth:JSON.parse(sessionStorage.getItem('porra:auth')||'{}'), fase:'grupos', admin:false, editing:false,
-  newName:'', newPin:'', rename:null, renameVal:'', renamePin:'', showAdmin:false, adminPin:'', adminErr:'', authModal:null, toast:null, loading:CONFIG_OK
-};
-const esc = s => String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-const slug = s => encodeURIComponent(s.trim().toLowerCase());
-const avatar = n => ['⚽','🏃','🥅','🎯','🔥','💪','⭐','🦁','🐯','🦅'][[...n].reduce((a,c)=>a+c.charCodeAt(0),0)%10];
-const root = ()=>doc(db,'porras',APP_ID);
-const settingsRef = ()=>doc(db,'porras',APP_ID,'meta','settings');
-const resultsRef = ()=>doc(db,'porras',APP_ID,'meta','results');
-const playerRef=i=>doc(db,'porras',APP_ID,'players',i);
-const betRef=i=>doc(db,'porras',APP_ID,'bets',i);
 
 const EMPTY_RESULTS = {
   grupos:{},
@@ -102,6 +86,42 @@ const EMPTY_RESULTS = {
   semis:{},
   final:{}
 };
+
+const APP_ID = 'worldcup2026';
+
+const state = {
+  players:[],
+  bets:{},
+  results:{...EMPTY_RESULTS},
+  settings:{...DEFAULT_SETTINGS},
+  yo:sessionStorage.getItem('porra:yo') || null,
+  auth:JSON.parse(sessionStorage.getItem('porra:auth') || '{}'),
+  fase:'grupos',
+  admin:false,
+  editing:false,
+  newName:'',
+  newPin:'',
+  rename:null,
+  renameVal:'',
+  renamePin:'',
+  showAdmin:false,
+  adminPin:'',
+  adminErr:'',
+  authModal:null,
+  toast:null,
+  loading:CONFIG_OK
+};
+
+const esc = s => String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const slug = s => encodeURIComponent(s.trim().toLowerCase());
+const avatar = n => ['⚽','🏃','🥅','🎯','🔥','💪','⭐','🦁','🐯','🦅'][[...n].reduce((a,c)=>a+c.charCodeAt(0),0)%10];
+const root = ()=>doc(db,'porras',APP_ID);
+const settingsRef = ()=>doc(db,'porras',APP_ID,'meta','settings');
+const resultsRef = ()=>doc(db,'porras',APP_ID,'meta','results');
+const playerRef=i=>doc(db,'porras',APP_ID,'players',i);
+const betRef=i=>doc(db,'porras',APP_ID,'bets',i);
+
+
   let toastT=null; function flash(msg,color='green'){ state.toast={msg,color}; clearTimeout(toastT); toastT=setTimeout(()=>{state.toast=null;render();},2400); render(); }
 async function sha256(text){ const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)); return [...new Uint8Array(buf)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 function persist(){ sessionStorage.setItem('porra:yo', state.yo||''); sessionStorage.setItem('porra:auth', JSON.stringify(state.auth)); }
@@ -144,13 +164,18 @@ function points(name){
     total: g + k
   };
 }
-  async function ensureBase(){
+async function ensureBase(){
   const r = await getDoc(root());
   if(!r.exists()) {
     await setDoc(root(), {
       createdAt: serverTimestamp(),
       name:'Porra Mundial 2026'
-);    });
+    });
+  }
+
+  const s = await getDoc(settingsRef());
+  if(!s.exists()) {
+    await setDoc(settingsRef(), DEFAULT_SETTINGS);
   }
 
   const res = await getDoc(resultsRef());
@@ -158,21 +183,66 @@ function points(name){
     await setDoc(resultsRef(), EMPTY_RESULTS);
   }
 }
+
+async function init(){
+  if(!CONFIG_OK){
+    render();
+    return;
   }
 
-  const s = await getDoc(settingsRef());
-  if(!s.exists()) {
-async function init(){ if(!CONFIG_OK){ render(); return; } await ensureBase(); 
-                      onSnapshot(collection(db,'porras',APP_ID,'players'), snap=>{ const a=[]; snap.forEach(d=>a.push(d.data())); a.sort((x,y)=>(x.name||'').localeCompare(y.name||'')); 
-                                                                                  state.players=a.map(x=>x.name); if(state.yo && !state.players.includes(state.yo)) state.yo=null; 
-                                                                                  state.loading=false; persist(); render(); }); 
-                      onSnapshot(collection(db,'porras',APP_ID,'bets'), snap=>{ const b={}; snap.forEach(d=>{ const x=d.data(); b[x.playerName]={grupos:x.grupos||{},dieciseisavos:x.dieciseisavos||{},octavos:x.octavos||{},cuartos:x.cuartos||{},semis:x.semis||{},final:x.final||{}}; }); state.bets=b; render(); }); 
-                      onSnapshot(settingsRef(), snap=>{ state.settings = snap.exists() ? {...DEFAULT_SETTINGS, ...snap.data()} : {...DEFAULT_SETTINGS}; if(!phaseOpen(state.fase)) state.fase=state.settings.unlockedPhase; render(); }); 
-                     
-onSnapshot(resultsRef(), snap=>{
-  state.results = snap.exists() ? {...EMPTY_RESULTS, ...snap.data()} : {...EMPTY_RESULTS};
-  render();
-});
+  await ensureBase();
+
+  onSnapshot(collection(db,'porras',APP_ID,'players'), snap => {
+    const a = [];
+    snap.forEach(d => a.push(d.data()));
+    a.sort((x,y) => (x.name || '').localeCompare(y.name || ''));
+    state.players = a.map(x => x.name);
+
+    if(state.yo && !state.players.includes(state.yo)) {
+      state.yo = null;
+    }
+
+    state.loading = false;
+    persist();
+    render();
+  });
+
+  onSnapshot(collection(db,'porras',APP_ID,'bets'), snap => {
+    const b = {};
+    snap.forEach(d => {
+      const x = d.data();
+      b[x.playerName] = {
+        grupos: x.grupos || {},
+        dieciseisavos: x.dieciseisavos || {},
+        octavos: x.octavos || {},
+        cuartos: x.cuartos || {},
+        semis: x.semis || {},
+        final: x.final || {}
+      };
+    });
+    state.bets = b;
+    render();
+  });
+
+  onSnapshot(settingsRef(), snap => {
+    state.settings = snap.exists()
+      ? { ...DEFAULT_SETTINGS, ...snap.data() }
+      : { ...DEFAULT_SETTINGS };
+
+    if(!phaseOpen(state.fase)) {
+      state.fase = state.settings.unlockedPhase;
+    }
+
+    render();
+  });
+
+  onSnapshot(resultsRef(), snap => {
+    state.results = snap.exists()
+      ? { ...EMPTY_RESULTS, ...snap.data() }
+      : { ...EMPTY_RESULTS };
+
+    render();
+  });
 }
 async function addPlayer(){ const n=state.newName.trim(), pin=state.newPin.trim(); if(!n||!pin) return flash('⚠️ Necesitas nombre y PIN','red'); const id=slug(n); if((await getDoc(playerRef(id))).exists()) return flash('⚠️ Ese nombre ya existe','red'); const h=await sha256(pin); await setDoc(playerRef(id), {name:n,pinHash:h,createdAt:serverTimestamp(),updatedAt:serverTimestamp()}); await setDoc(betRef(id), {playerName:n,grupos:{},dieciseisavos:{},octavos:{},cuartos:{},semis:{},final:{},updatedAt:serverTimestamp()}); state.auth[id]=true; state.yo=n; state.newName=''; state.newPin=''; persist(); flash('👤 Jugador creado'); }
 async function deletePlayer(name){ if(!confirm(`¿Eliminar a ${name} y todas sus apuestas?`)) return; const id=slug(name); const batch=writeBatch(db); batch.delete(playerRef(id)); batch.delete(betRef(id)); await batch.commit(); delete state.auth[id]; if(state.yo===name) state.yo=null; persist(); flash('🗑️ Jugador eliminado','red'); }
